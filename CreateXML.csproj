@@ -8,8 +8,17 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="XML\**" />
+    <EmbeddedResource Remove="XML\**" />
+    <None Remove="XML\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Folder Include="Template\" />
-    <Folder Include="XML\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="bin\Debug\net6.0\Data.xlsx" />
   </ItemGroup>
 
   <ItemGroup>

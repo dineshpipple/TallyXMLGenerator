@@ -216,13 +216,20 @@ public class TALLYMESSAGE
     {
         VOUCHER =  new VOUCHER();
         STOCKITEM = new STOCKITEM();
+        UNIT = new UNIT();
     }
 
     [XmlElement(ElementName = "VOUCHER")]
     public VOUCHER? VOUCHER { get; set; }
 
+    [XmlElement(ElementName = "LEDGER")]
+    public LEDGER? LEDGER { get; set; }
+
     [XmlElement(ElementName = "STOCKITEM")]
     public STOCKITEM? STOCKITEM { get; set; }
+
+    [XmlElement(ElementName = "UNIT")]
+    public UNIT? UNIT { get; set; }
 
 
     [XmlAttribute("xmlnUDF")]
@@ -241,7 +248,6 @@ public class REQUESTDATA
     [XmlElement(ElementName = "TALLYMESSAGE")]
     public List<TALLYMESSAGE> TALLYMESSAGE { get; set; }
 }
-
 [XmlRoot(ElementName = "IMPORTDATA")]
 public class IMPORTDATA
 {
@@ -453,5 +459,127 @@ public class STOCKITEM
 
 
 }
+
+
+
+
+[XmlRoot(ElementName = "UNIT")]
+public class UNIT
+{
+
+    [XmlElement(ElementName = "NAME")]
+    public string NAME { get; set; }
+
+    [XmlElement(ElementName = "GSTREPUOM")]
+    public string GSTREPUOM { get; set; }
+
+    [XmlElement(ElementName = "ISSIMPLEUNIT")]
+    public string ISSIMPLEUNIT { get; set; }
+
+
+    [XmlElement(ElementName = "DECIMALPLACES")]
+    public string DECIMALPLACES { get; set; }
+    
+
+    [XmlAttribute(AttributeName = "NAME")]
+    public string AttributeNAME { get; set; }
+
+}
+
+// using System.Xml.Serialization;
+// XmlSerializer serializer = new XmlSerializer(typeof(LEDGER));
+// using (StringReader reader = new StringReader(xml))
+// {
+//    var test = (LEDGER)serializer.Deserialize(reader);
+// }
+
+
+
+[XmlRoot(ElementName = "LEDGER")]
+public class LEDGER
+{
+
+    [XmlElement(ElementName = "PARENT")]
+    public string PARENT { get; set; }
+
+    [XmlElement(ElementName = "MAILINGNAME.LIST")]
+    public MAILINGNAMELIST MAILINGNAMELIST { get; set; }
+
+    [XmlElement(ElementName = "GSTAPPLICABLE")]
+    public string GSTAPPLICABLE { get; set; }
+
+    [XmlElement(ElementName = "GSTTYPEOFSUPPLY")]
+    public string GSTTYPEOFSUPPLY { get; set; }
+
+    [XmlElement(ElementName = "SERVICECATEGORY")]
+    public string SERVICECATEGORY { get; set; }
+
+ 
+    [XmlElement(ElementName = "RATEOFTAXCALCULATION")]
+    public string RATEOFTAXCALCULATION { get; set; }
+
+
+    [XmlElement(ElementName = "VATAPPLICABLE")]
+    public string VATAPPLICABLE { get; set; }
+
+    [XmlElement(ElementName = "LANGUAGENAME.LIST")]
+    public LANGUAGENAMELIST LANGUAGENAMELIST { get; set; }
+
+    [XmlAttribute(AttributeName = "NAME")]
+    public string NAME { get; set; }
+
+    //[XmlAttribute(AttributeName = "RESERVEDNAME")]
+    //public object RESERVEDNAME { get; set; }
+
+    //[XmlText]
+    //public string Text { get; set; }
+
+    [XmlElement(ElementName = "PRIORSTATENAME")]
+    public string PRIORSTATENAME { get; set; }
+
+    [XmlElement(ElementName = "COUNTRYNAME")]
+    public string COUNTRYNAME { get; set; }
+
+    [XmlElement(ElementName = "GSTREGISTRATIONTYPE")]
+    public string GSTREGISTRATIONTYPE { get; set; }
+
+    [XmlElement(ElementName = "TAXTYPE")]
+    public string TAXTYPE { get; set; }
+
+    [XmlElement(ElementName = "GSTDUTYHEAD")]
+    public string GSTDUTYHEAD { get; set; }
+
+
+    [XmlElement(ElementName = "COUNTRYOFRESIDENCE")]
+    public string COUNTRYOFRESIDENCE { get; set; }
+
+    [XmlElement(ElementName = "ISBILLWISEON")]
+    public string ISBILLWISEON { get; set; }
+
+    [XmlElement(ElementName = "LEDSTATENAME")]
+    public string LEDSTATENAME { get; set; }
+
+}
+
+
+
+
+[XmlRoot(ElementName = "MAILINGNAME.LIST")]
+public class MAILINGNAMELIST
+{
+
+    [XmlElement(ElementName = "MAILINGNAME")]
+    public string MAILINGNAME { get; set; }
+
+    [XmlAttribute(AttributeName = "TYPE")]
+    public string TYPE { get; set; }
+
+    [XmlText]
+    public string Text { get; set; }
+}
+
+
+
+
 
 

@@ -31,6 +31,8 @@ public class LEDGERENTRIESLIST
 
     [XmlElement(ElementName = "MyProperty")]
     public MyProperty MyProperty { get; set; }
+
+    
 }
 
 public class MyProperty
@@ -55,6 +57,8 @@ public class ACCOUNTINGALLOCATIONSLIST
 
     [XmlElement(ElementName = "AMOUNT")]
     public string AMOUNT { get; set; }
+
+
 }
 
 [XmlRoot(ElementName = "ALLINVENTORYENTRIES.LIST")]
@@ -85,6 +89,10 @@ public class ALLINVENTORYENTRIESLIST
 
     [XmlElement(ElementName = "ACCOUNTINGALLOCATIONS.LIST")]
     public ACCOUNTINGALLOCATIONSLIST ACCOUNTINGALLOCATIONSLIST { get; set; }
+
+    [XmlElement(ElementName = "BATCHALLOCATIONS.LIST")]
+    public BATCHALLOCATIONSLIST BATCHALLOCATIONSLIST { get; set; }
+
 }
 
 public class BASICRATEOFINVOICETAXLIST
@@ -96,7 +104,6 @@ public class BASICRATEOFINVOICETAXLIST
 
     [XmlAttribute(AttributeName = "Type")]
     public string Type { get; set; }
-
 
 }
 
@@ -151,28 +158,47 @@ public class VOUCHER
     [XmlAttribute(AttributeName = "OBJVIEW")]
     public string OBJVIEW { get; set; }
 
+
+    
+    [XmlElement(ElementName = "GSTREGISTRATIONTYPE")]
+    public string GSTREGISTRATIONTYPE { get; set; }
+
+    [XmlElement(ElementName = "STATENAME")]
+    public string STATENAME { get; set; }
+
+    [XmlElement(ElementName = "COUNTRYOFRESIDENCE")]
+    public string COUNTRYOFRESIDENCE { get; set; }
+
+    [XmlElement(ElementName = "PLACEOFSUPPLY")]
+    public string PLACEOFSUPPLY { get; set; }
+
+    [XmlElement(ElementName = "PARTYMAILINGNAME")]
+    public string PARTYMAILINGNAME { get; set; }
+
+    [XmlElement(ElementName = "CONSIGNEEMAILINGNAME")]
+    public string CONSIGNEEMAILINGNAME { get; set; }
+
+    [XmlElement(ElementName = "CONSIGNEESTATENAME")]
+    public string CONSIGNEESTATENAME { get; set; }
+
+    [XmlElement(ElementName = "BASICBASEPARTYNAME")]
+    public string BASICBASEPARTYNAME { get; set; }
+
+    [XmlElement(ElementName = "FBTPAYMENTTYPE")]
+    public string FBTPAYMENTTYPE { get; set; }
+
+
+    [XmlElement(ElementName = "BASICBUYERNAME")]
+    public string BASICBUYERNAME { get; set; }
+
+    [XmlElement(ElementName = "CONSIGNEECOUNTRYNAME")]
+    public string CONSIGNEECOUNTRYNAME { get; set; }
+
+    [XmlElement(ElementName = "VCHENTRYMODE")]
+    public string VCHENTRYMODE { get; set; }
+
+
 }
-
-//public class TALLYMESSAGE
-//{
-//    public TALLYMESSAGE()
-//    {
-//        VOUCHER =  new VOUCHER();
-//    }
-//    public VOUCHER VOUCHER { get; set; }
-//    [XmlAttribute(AttributeName = "xmlns:UDF")]
-//    public string TallyUDF { get; set; }
-//}
-
-//public class REQUESTDATA
-//{
-//    public REQUESTDATA()
-//    {
-//        TALLYMESSAGE = new TALLYMESSAGE();
-//    }
-//    public TALLYMESSAGE TALLYMESSAGE { get; set; }
-//}
-
 
 
 
@@ -582,4 +608,22 @@ public class MAILINGNAMELIST
 
 
 
+[XmlRoot(ElementName = "BATCHALLOCATIONS.LIST")]
+public class BATCHALLOCATIONSLIST
+{
 
+    [XmlElement(ElementName = "GODOWNNAME")]
+    public string GODOWNNAME { get; set; }
+
+    [XmlElement(ElementName = "BATCHNAME")]
+    public string BATCHNAME { get; set; }
+
+    [XmlElement(ElementName = "AMOUNT")]
+    public string AMOUNT { get; set; }
+
+    [XmlElement(ElementName = "ACTUALQTY")]
+    public string ACTUALQTY { get; set; }
+
+    [XmlElement(ElementName = "BILLEDQTY")]
+    public string BILLEDQTY { get; set; }
+}

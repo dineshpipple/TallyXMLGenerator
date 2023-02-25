@@ -9,56 +9,39 @@ using System.Xml.Serialization;
 
 var obj = new CreateClass();
 
-
-
-public class RequiredName
-{
-    public string CompanyName { get; set; }
-    public string PartyName { get; set; }
-    public string VOUCHERTYPENAME { get; set; }
-    public string ACCOUNTINGALLOCATIONS { get; set; }
-    public string BASICRATEOFINVOICETAX { get; set; }
-    public string GST { get; set; }
-    public string SGST { get; set; }
-    public string CGST { get; set; }
-    public string Unit { get; set; }
-}
-
-
-
 public class CreateClass
 {
-    public string Name { get; set; }
+    public string VTypeName { get; set; } = "Sales";
+    public string PartyLedgerName { get; set; }
+    public string SalesLedgerName { get; set; }
+    public string IGSTName { get; set; }
+    public string IGSTRate { get; set; }
+    public string CGSTName { get; set; }
+    public string CGSTRate { get; set; }
+    public string SGSTName { get; set; }
+    public string SGSTRate { get; set; }
+    public string Unit { get; set; }
+    public string VoucherName { get; set; } = "Sales";
+
+    public List<TALLYMESSAGE> Master;
+    public List<TALLYMESSAGE> Transaction;
+
 
     public CreateClass()
     {
         Console.WriteLine("Reading values from settings.");
         var setting = ConfigurationManager.AppSettings;
-        var required = new RequiredName()
-        {
-            CompanyName = setting.GetValues("CompanyName").FirstOrDefault().ToString(),
+        Master = new List<TALLYMESSAGE>();
+        Transaction = new List<TALLYMESSAGE>();
+        CreateMaster();
+        CreateSalesVoucher("Data.xlsx");
 
-            PartyName = setting.GetValues("PartyName").FirstOrDefault().ToString(),
-            VOUCHERTYPENAME = setting.GetValues("VOUCHERTYPENAME").FirstOrDefault().ToString(),
-            ACCOUNTINGALLOCATIONS = setting.GetValues("ACCOUNTINGALLOCATIONS").FirstOrDefault().ToString(),
-            BASICRATEOFINVOICETAX = setting.GetValues("BASICRATEOFINVOICETAX").FirstOrDefault().ToString(),
-            GST = setting.GetValues("GST").FirstOrDefault().ToString(),
-            SGST = setting.GetValues("SGST").FirstOrDefault().ToString(),
-            CGST = setting.GetValues("CGST").FirstOrDefault().ToString(),
-            Unit = setting.GetValues("Unit").FirstOrDefault().ToString(),
-
-
-        };
-        CreateLedger();
-
-
-        CreateXMLFromExcel("Data.xlsx", requred);
+        //CreateXMLFromExcel("Data.xlsx", requred);
     }
 
-    public void CreateLedger()
+    public void CreateMaster()
     {
-        var tallyLeger = new List<TALLYMESSAGE>();
-        tallyLeger.Add(new TALLYMESSAGE()
+        Master.Add(new TALLYMESSAGE()
         {
             STOCKITEM = null,
             TallyUDF = null,
@@ -69,7 +52,7 @@ public class CreateClass
         });
 
 
-        tallyLeger.Add(new TALLYMESSAGE()
+        Master.Add(new TALLYMESSAGE()
         {
             STOCKITEM = null,
             TallyUDF = null,
@@ -79,7 +62,7 @@ public class CreateClass
             ConfigurationManager.AppSettings.GetValues("SGSTRate").FirstOrDefault().ToString())
         });
 
-        tallyLeger.Add(new TALLYMESSAGE()
+        Master.Add(new TALLYMESSAGE()
         {
             STOCKITEM = null,
             TallyUDF = null,
@@ -89,7 +72,7 @@ public class CreateClass
             ConfigurationManager.AppSettings.GetValues("CGSTRate").FirstOrDefault().ToString())
         });
 
-        tallyLeger.Add(new TALLYMESSAGE()
+        Master.Add(new TALLYMESSAGE()
         {
             STOCKITEM = null,
             TallyUDF = null,
@@ -97,7 +80,8 @@ public class CreateClass
             VOUCHER = null,
             LEDGER = SalesLeger(ConfigurationManager.AppSettings.GetValues("SalesLedger").FirstOrDefault().ToString())
         });
-        tallyLeger.Add(new TALLYMESSAGE()
+
+        Master.Add(new TALLYMESSAGE()
         {
             STOCKITEM = null,
             TallyUDF = null,
@@ -108,27 +92,14 @@ public class CreateClass
         });
 
 
-        tallyLeger.Add(new TALLYMESSAGE()
+        Master.Add(new TALLYMESSAGE()
         {
             STOCKITEM = null,
             VOUCHER = null,
-            UNIT = CreateUnit("PCS")
+            UNIT = CreateUnit("PCS"),
+            LEDGER = null
         });
 
-
-        var mainTag = MainTag();
-
-        mainTag.BODY.IMPORTDATA.REQUESTDATA.TALLYMESSAGE = tallyLeger;
-
-        var ledgerPath = AppDomain.CurrentDomain.BaseDirectory + "Ledger.xml";
-        XmlSerializer serializer = new XmlSerializer(typeof(ENVELOPE));
-        var writer = new StreamWriter(ledgerPath);
-        serializer.Serialize(writer, mainTag);
-        writer.Close();
-
-        string text = File.ReadAllText(ledgerPath);
-        text = text.Replace("&amp;#4;", "&#4;");
-        File.WriteAllText(ledgerPath, text);
 
 
     }
@@ -143,16 +114,11 @@ public class CreateClass
         return envelop;
     }
 
-
-    public void CreateXMLFromExcel(string fileName, RequiredName requiredName)
+    public void CreateSalesVoucher(string fileName)
     {
         ISheet sheet;
         var tallyVoucher = new List<TALLYMESSAGE>();
-        var tallyStock = new List<TALLYMESSAGE>();
-        var tallyUnit = new List<TALLYMESSAGE>();
         var stockDictionary = new Dictionary<string, IRow>();
-        XmlSerializer serializer = new XmlSerializer(typeof(ENVELOPE));
-
 
         Console.WriteLine("Reading file.");
         using (var stream = new FileStream(fileName, FileMode.Open))
@@ -160,15 +126,13 @@ public class CreateClass
             stream.Position = 0;
             XSSFWorkbook xssWorkbook = new XSSFWorkbook(stream);
 
-
             var evaluator = xssWorkbook.GetCreationHelper().CreateFormulaEvaluator();
-
 
             sheet = xssWorkbook.GetSheetAt(0);
             IRow headerRow = sheet.GetRow(0);
 
-
             Console.WriteLine("Validating columns names.");
+
             if (!IsAllColumnExists(headerRow))
             {
                 throw new Exception("Columns not present");
@@ -180,7 +144,28 @@ public class CreateClass
                 if (row == null) continue;
                 tallyVoucher.Add(new TALLYMESSAGE
                 {
-                    VOUCHER = CreateVouhcer(row, requiredName, evaluator),
+                    VOUCHER = CreateSalesVouhcer(VTypeName,
+                    Convert.ToDateTime(row.GetCell(0).ToString()).ToString("yyyyMMdd"),
+                    PartyLedgerName, 
+                    GetCellValue(evaluator.Evaluate(row.GetCell(2))), 
+                    GetCellValue(evaluator.Evaluate(row.GetCell(6))),
+                    GetCellValue(evaluator.Evaluate(row.GetCell(10))),
+                    GetCellValue(evaluator.Evaluate(row.GetCell(3))), 
+                    GetCellValue(evaluator.Evaluate(row.GetCell(5))),
+                    Unit, 
+                    GetCellValue(evaluator.Evaluate(row.GetCell(4))), 
+                    IGSTName, 
+                    GetCellValue(evaluator.Evaluate(row.GetCell(7))), 
+                    IGSTRate, 
+                    CGSTName, 
+                    GetCellValue(evaluator.Evaluate(row.GetCell(9))), 
+                    CGSTRate, 
+                    SGSTName, 
+                    GetCellValue(evaluator.Evaluate(row.GetCell(8))), 
+                    SGSTRate, 
+                    VoucherName, 
+                    SalesLedgerName, 
+                    GetCellValue(evaluator.Evaluate(row.GetCell(13)))),
                     STOCKITEM = null,
                     UNIT = null,
                 });
@@ -191,229 +176,58 @@ public class CreateClass
                 }
             }
 
-            foreach (KeyValuePair<string, IRow> ele1 in stockDictionary)
+            foreach (KeyValuePair<string, IRow> ele in stockDictionary)
             {
-                tallyStock.Add(new TALLYMESSAGE
+                Master.Add(new TALLYMESSAGE
                 {
-                    STOCKITEM = CreateStock(ele1.Value, requiredName, evaluator),
+                    STOCKITEM = CreateStock(ele.Key.ToString(), 18, Unit, 
+                    Convert.ToInt32( evaluator.Evaluate(((IRow)ele.Value).GetCell(12)).NumberValue), 
+                    evaluator.Evaluate(((IRow)ele.Value).GetCell(11)).StringValue),
                     VOUCHER = null,
-                    UNIT = null,
+                    UNIT = null
                 });
             }
 
-            var envelop = new ENVELOPE();
-            envelop.HEADER.TALLYREQUEST = "Import Data";
-            envelop.BODY.IMPORTDATA.REQUESTDESC.REPORTNAME = "All Masters";
-            envelop.BODY.IMPORTDATA.REQUESTDESC.STATICVARIABLES.SVCURRENTCOMPANY = requiredName.CompanyName;
 
+            var mainMasterTag = MainTag();
+            mainMasterTag.BODY.IMPORTDATA.REQUESTDATA.TALLYMESSAGE = Master;
 
-
-            //Stock
-            envelop.BODY.IMPORTDATA.REQUESTDATA.TALLYMESSAGE = tallyStock;
-            var stockPath = AppDomain.CurrentDomain.BaseDirectory + "Stock.xml";
-            var writer = new StreamWriter(stockPath);
-            serializer.Serialize(writer, envelop);
+            var ledgerPath = AppDomain.CurrentDomain.BaseDirectory + "Master.xml";
+            XmlSerializer serializer = new XmlSerializer(typeof(ENVELOPE));
+            var writer = new StreamWriter(ledgerPath);
+            serializer.Serialize(writer, mainMasterTag);
             writer.Close();
 
+            string text = File.ReadAllText(ledgerPath);
+            text = text.Replace("&amp;#4;", "&#4;");
+            File.WriteAllText(ledgerPath, text);
 
-            Console.WriteLine("Stock.xml file successfully created.");
+            Console.WriteLine("Master.xml file successfully created.");
 
-            //Stock
-            envelop.BODY.IMPORTDATA.REQUESTDATA.TALLYMESSAGE = tallyVoucher;
-            var salesPath = AppDomain.CurrentDomain.BaseDirectory + "Sales.xml";
-            writer = new StreamWriter(salesPath);
-            serializer.Serialize(writer, envelop);
-            writer.Close();
 
-            Console.WriteLine("Sales.xml file successfully created.");
 
-            tallyUnit.Add(new TALLYMESSAGE()
-            {
-                STOCKITEM = null,
-                VOUCHER = null,
-                UNIT = CreateUnit(requiredName)
-            });
+            var mainTransactionTag = MainTag();
+            mainTransactionTag.BODY.IMPORTDATA.REQUESTDATA.TALLYMESSAGE = tallyVoucher;
 
-            //Stock
-            envelop.BODY.IMPORTDATA.REQUESTDATA.TALLYMESSAGE = tallyUnit;
-            var unitPath = AppDomain.CurrentDomain.BaseDirectory + "Unit.xml";
-            writer = new StreamWriter(unitPath);
-            serializer.Serialize(writer, envelop);
-            writer.Close();
+            var transactionPath = AppDomain.CurrentDomain.BaseDirectory + "Transaction.xml";
             
+            XmlSerializer serializer2 = new XmlSerializer(typeof(ENVELOPE));
+            var writer2 = new StreamWriter(transactionPath);
+            serializer2.Serialize(writer2, mainTransactionTag);
+            writer2.Close();
 
-            Console.WriteLine("Unit.xml file successfully created.");
+
+            Console.WriteLine("Transaction.xml file successfully created.");
 
 
         }
     }
-
-    private VOUCHER CreateVouhcer(IRow row, RequiredName requiredName, IFormulaEvaluator evaluator)
-    {
-        List<TALLYMESSAGE> tallyMessage = new List<TALLYMESSAGE>();
-        VOUCHER vouhcer = new VOUCHER();
-        var voucher = new VOUCHER();
-
-        voucher.VCHTYPE = requiredName.VOUCHERTYPENAME;
-        voucher.VOUCHERTYPENAME = requiredName.VOUCHERTYPENAME;
-        voucher.ACTION = "Create";
-        voucher.OBJVIEW = "Invoice Voucher View";
-        voucher.DATE = Convert.ToDateTime(row.GetCell(0).ToString()).ToString("yyyyMMdd");
-        voucher.PARTYLEDGERNAME = requiredName.PartyName;
-
-        voucher.NARRATION = row.GetCell(1).StringCellValue;
-        voucher.VOUCHERNUMBER = GetCellValue(evaluator.Evaluate(row.GetCell(2)));
-        voucher.PARTYLEDGERNAME = requiredName.PartyName;
-        voucher.ISINVOICE = "Yes";
-
-        voucher.LEDGERENTRIESLIST.Add(new LEDGERENTRIESLIST()
-        {
-            LEDGERNAME = requiredName.PartyName,
-            ISDEEMEDPOSITIVE = "Yes",
-            AMOUNT = "-" + GetCellValue(evaluator.Evaluate(row.GetCell(10))),
-        });
-
-        voucher.ALLINVENTORYENTRIESLIST.STOCKITEMNAME = GetCellValue(evaluator.Evaluate(row.GetCell(3)));
-        voucher.ALLINVENTORYENTRIESLIST.ISDEEMEDPOSITIVE = "No";
-        voucher.ALLINVENTORYENTRIESLIST.RATE = GetCellValue(evaluator.Evaluate(row.GetCell(5))) + "/" + requiredName.Unit;
-        voucher.ALLINVENTORYENTRIESLIST.AMOUNT = GetCellValue(evaluator.Evaluate(row.GetCell(6)));
-        voucher.ALLINVENTORYENTRIESLIST.ACTUALQTY = GetCellValue(evaluator.Evaluate(row.GetCell(4))) + " " + requiredName.Unit;
-        voucher.ALLINVENTORYENTRIESLIST.BILLEDQTY = GetCellValue(evaluator.Evaluate(row.GetCell(4))) + " " + requiredName.Unit;
-
-        voucher.ALLINVENTORYENTRIESLIST.ACCOUNTINGALLOCATIONSLIST.LEDGERNAME = requiredName.ACCOUNTINGALLOCATIONS;
-        voucher.ALLINVENTORYENTRIESLIST.ACCOUNTINGALLOCATIONSLIST.ISDEEMEDPOSITIVE = "No";
-        voucher.ALLINVENTORYENTRIESLIST.ACCOUNTINGALLOCATIONSLIST.AMOUNT = GetCellValue(evaluator.Evaluate(row.GetCell(6)));
-
-
-        if (string.IsNullOrWhiteSpace(requiredName.GST) == false)
-        {
-            voucher.LEDGERENTRIESLIST.Add(new LEDGERENTRIESLIST()
-            {
-                LEDGERNAME = requiredName.GST,
-                ISDEEMEDPOSITIVE = "No",
-                AMOUNT = GetCellValue(evaluator.Evaluate(row.GetCell(7))),
-                BASICRATEOFINVOICETAXLIST = new BASICRATEOFINVOICETAXLIST() { BASICRATEOFINVOICETAX = requiredName.BASICRATEOFINVOICETAX, Type = "Number" }
-            });
-        }
-
-        if (string.IsNullOrWhiteSpace(requiredName.SGST) == false && string.IsNullOrWhiteSpace(requiredName.CGST) == false)
-        {
-            var halftRate = Convert.ToInt32(requiredName.BASICRATEOFINVOICETAX) / 2;
-
-            voucher.LEDGERENTRIESLIST.Add(new LEDGERENTRIESLIST()
-            {
-                LEDGERNAME = requiredName.SGST,
-                ISDEEMEDPOSITIVE = "No",
-                AMOUNT = GetCellValue(evaluator.Evaluate(row.GetCell(8))),
-                BASICRATEOFINVOICETAXLIST = new BASICRATEOFINVOICETAXLIST() { BASICRATEOFINVOICETAX = halftRate.ToString(), Type = "Number" }
-            });
-
-
-            voucher.LEDGERENTRIESLIST.Add(new LEDGERENTRIESLIST()
-            {
-                LEDGERNAME = requiredName.CGST,
-                ISDEEMEDPOSITIVE = "No",
-                AMOUNT = GetCellValue(evaluator.Evaluate(row.GetCell(9))),
-                BASICRATEOFINVOICETAXLIST = new BASICRATEOFINVOICETAXLIST() { BASICRATEOFINVOICETAX = halftRate.ToString(), Type = "Number" }
-            });
-        }
-        return voucher;
-    }
-
-    private STOCKITEM CreateStock(IRow row, RequiredName requiredName, IFormulaEvaluator evaluator)
-    {
-        var rateDetailList = new List<RATEDETAILSLIST>();
-
-        if (string.IsNullOrWhiteSpace(requiredName.SGST) == false && string.IsNullOrWhiteSpace(requiredName.CGST) == false)
-        {
-            rateDetailList.Add(new RATEDETAILSLIST()
-            {
-                GSTRATEDUTYHEAD = "Central Tax",
-                GSTRATEVALUATIONTYPE = "Based on Value",
-                GSTRATE = GetCellValue(evaluator.Evaluate(row.GetCell(9))),
-            });
-
-            rateDetailList.Add(new RATEDETAILSLIST()
-            {
-                GSTRATEDUTYHEAD = "State Tax",
-                GSTRATEVALUATIONTYPE = "Based on Value",
-                GSTRATE = GetCellValue(evaluator.Evaluate(row.GetCell(8))),
-            });
-        }
-        rateDetailList.Add(new RATEDETAILSLIST()
-        {
-            GSTRATEDUTYHEAD = "Integrated Tax",
-            GSTRATEVALUATIONTYPE = "Based on Value",
-            GSTRATE = GetCellValue(evaluator.Evaluate(row.GetCell(7))),
-        });
-
-        return new STOCKITEM()
-        {
-            NAME = Name,
-            GSTAPPLICABLE = @"&#4; Applicable",
-            VATAPPLICABLE = @"&#4; Applicable",
-            GSTTYPEOFSUPPLY = "Goods",
-            GSTDETAILSLIST = new GSTDETAILSLIST()
-            {
-                APPLICABLEFROM = row.GetCell(12).ToString(),
-                CALCULATIONTYPE = "On Value",
-                HSNCODE = GetCellValue(evaluator.Evaluate(row.GetCell(11))),
-                TAXABILITY = "Taxable",
-                STATEWISEDETAILSLIST = new STATEWISEDETAILSLIST()
-                {
-                    STATENAME = GetCellValue(evaluator.Evaluate(row.GetCell(13))),
-                    RATEDETAILSLIST = rateDetailList,
-                }
-            },
-
-            LANGUAGENAMELIST = new LANGUAGENAMELIST()
-            {
-                LANGUAGEID = 1033,
-                NAMELIST = new NAMELIST()
-                {
-                    NAME = GetCellValue(evaluator.Evaluate(row.GetCell(3))),
-                    TYPE = "String"
-                }
-            },
-            BASEUNITS = requiredName.Unit,
-            RESERVEDNAME = "",
-
-        };
-    }
-
-
-    private UNIT CreateUnit(RequiredName requiredName)
-    {
-        var GSTREPUOM = "";
-        switch (requiredName.Unit.ToUpper())
-        {
-            case "KG":
-                GSTREPUOM = "KGS-KILOGRAMS";
-                break;
-            case "NOS":
-                GSTREPUOM = "NOS-NUMBERS";
-                break;
-            case "PCS":
-                GSTREPUOM = "PCS-PIECES";
-                break;
-            default:
-                break;
-        }
-        return new UNIT()
-        {
-            NAME = requiredName.Unit,
-            AttributeNAME = requiredName.Unit,
-            GSTREPUOM = GSTREPUOM,
-            ISSIMPLEUNIT = "Yes",
-            DECIMALPLACES = "2"
-        };
-    }
-
 
 
     private UNIT CreateUnit(string unit)
     {
         var GSTREPUOM = "";
+        Unit = unit;
         switch (unit)
         {
             case "KG":
@@ -536,6 +350,7 @@ public class CreateClass
 
     private LEDGER SalesLeger(string name)
     {
+        SalesLedgerName = name;
         LEDGER ledger = new LEDGER();
         ledger.NAME = name;
 
@@ -552,9 +367,10 @@ public class CreateClass
         ledger.LANGUAGENAMELIST.NAMELIST.TYPE = "String";
         return ledger;
     }
-    
+
     private LEDGER PartyLeger(string name, string state)
     {
+        PartyLedgerName = name;
         LEDGER ledger = new LEDGER();
         ledger.NAME = name;
 
@@ -582,8 +398,10 @@ public class CreateClass
 
     private LEDGER CGSTLeger(string name, string rate)
     {
+        CGSTName = name + rate + " %";
+        CGSTRate = rate;
         LEDGER ledger = new LEDGER();
-        ledger.NAME = name + rate + " %";
+        ledger.NAME = CGSTName;
 
         ledger.PARENT = "Duties & Taxes";
         ledger.TAXTYPE = "GST";
@@ -603,8 +421,10 @@ public class CreateClass
 
     private LEDGER SGSTLeger(string name, string rate)
     {
+        SGSTName = name + rate + " %";
+        SGSTRate = rate;
         LEDGER ledger = new LEDGER();
-        ledger.NAME = name + rate + " %";
+        ledger.NAME = SGSTName;
         ledger.PARENT = "Duties & Taxes";
         ledger.TAXTYPE = "GST";
         ledger.GSTDUTYHEAD = "State Tax";
@@ -623,8 +443,10 @@ public class CreateClass
 
     private LEDGER IGSTLeger(string name, string rate)
     {
+        IGSTName = name + rate + " %";
+        IGSTRate = rate;
         LEDGER ledger = new LEDGER();
-        ledger.NAME = name + rate + " %";
+        ledger.NAME = IGSTName;
         ledger.PARENT = "Duties & Taxes";
         ledger.TAXTYPE = "GST";
         ledger.GSTDUTYHEAD = "Integrated Tax";
@@ -641,12 +463,169 @@ public class CreateClass
         return ledger;
     }
 
-    public static string XmlUnescape(string escaped)
+    private STOCKITEM CreateStock(string name, float rate, string unit, int applicableYear, string hsn)
     {
-        XmlDocument doc = new XmlDocument();
-        XmlNode node = doc.CreateElement("root");
-        node.InnerXml = escaped;
-        return node.InnerText;
+        var rateDetailList = new List<RATEDETAILSLIST>();
+
+        rateDetailList.Add(new RATEDETAILSLIST()
+        {
+            GSTRATEDUTYHEAD = "Central Tax",
+            GSTRATEVALUATIONTYPE = "Based on Value",
+            GSTRATE = Convert.ToString(rate / 2),
+        });
+
+        rateDetailList.Add(new RATEDETAILSLIST()
+        {
+            GSTRATEDUTYHEAD = "State Tax",
+            GSTRATEVALUATIONTYPE = "Based on Value",
+            GSTRATE = Convert.ToString(rate / 2),
+        });
+        rateDetailList.Add(new RATEDETAILSLIST()
+        {
+            GSTRATEDUTYHEAD = "Integrated Tax",
+            GSTRATEVALUATIONTYPE = "Based on Value",
+            GSTRATE = Convert.ToString(rate),
+        });
+
+        return new STOCKITEM()
+        {
+            NAME = name,
+            GSTAPPLICABLE = @"&#4; Applicable",
+            VATAPPLICABLE = @"&#4; Applicable",
+            GSTTYPEOFSUPPLY = "Goods",
+            BASEUNITS = unit,
+            RESERVEDNAME = "",
+
+            GSTDETAILSLIST = new GSTDETAILSLIST()
+            {
+                APPLICABLEFROM = new DateTime(applicableYear, 4, 1).ToString("yyyyMMdd"),
+                CALCULATIONTYPE = "On Value",
+                HSNCODE = hsn,
+                TAXABILITY = "Taxable",
+                STATEWISEDETAILSLIST = new STATEWISEDETAILSLIST()
+                {
+                    STATENAME = "&#4; Any",
+                    RATEDETAILSLIST = rateDetailList,
+                }
+            },
+
+            LANGUAGENAMELIST = new LANGUAGENAMELIST()
+            {
+                LANGUAGEID = 1033,
+                NAMELIST = new NAMELIST()
+                {
+                    NAME = name,
+                    TYPE = "String"
+                }
+            },
+
+        };
     }
+
+
+    private VOUCHER CreateSalesVouhcer(string vhType,string vdate, string partyledgerName, string vnumber, string taxableAmount, string withTaxAmount, string stockItemName, string rate, string unit, string qty, string igstLegderName, string igstLegderNameAmt, string igstLegderNameRate, string cgstLegderName, string cgstLegderNameAmt, string cgstLegderNameRate, string sgstLegderName, string sgstLegderNameAmt, string sgstLegderNameRate, string voucherName = "Sale", string salesVoucher = "Amazon Sale", string partyLedgerState = "Delhi")
+    {
+        VOUCHER vouhcer = new VOUCHER();
+        var voucher = new VOUCHER();
+
+        voucher.VCHTYPE = vhType;
+        voucher.VOUCHERTYPENAME = voucherName;
+        voucher.ACTION = "Create";
+        voucher.OBJVIEW = "Invoice Voucher View";
+        voucher.DATE = vdate;
+        voucher.PARTYNAME = partyledgerName;
+
+        voucher.PARTYLEDGERNAME = partyledgerName;
+        voucher.PARTYMAILINGNAME= partyledgerName;
+        voucher.CONSIGNEECOUNTRYNAME = partyledgerName;
+        voucher.BASICBASEPARTYNAME = partyledgerName;
+        voucher.FBTPAYMENTTYPE = "Default";
+        voucher.PERSISTEDVIEW = "Invoice Voucher View";
+        voucher.BASICBUYERNAME = partyledgerName;
+        voucher.CONSIGNEECOUNTRYNAME = "India";
+        voucher.VCHENTRYMODE = "Item Invoice";
+
+        voucher.NARRATION = "Narration";
+        voucher.VOUCHERNUMBER = vnumber;
+        voucher.GSTREGISTRATIONTYPE = "Unregistered";
+        voucher.COUNTRYOFRESIDENCE = "India";
+        voucher.PLACEOFSUPPLY = partyLedgerState;
+        voucher.CONSIGNEESTATENAME = partyLedgerState;
+        voucher.STATENAME= partyLedgerState;
+
+
+
+        voucher.ALLINVENTORYENTRIESLIST.STOCKITEMNAME = stockItemName;
+        voucher.ALLINVENTORYENTRIESLIST.ISDEEMEDPOSITIVE = "No";
+        voucher.ALLINVENTORYENTRIESLIST.RATE = rate + "/" + unit;
+        voucher.ALLINVENTORYENTRIESLIST.AMOUNT = taxableAmount;
+        voucher.ALLINVENTORYENTRIESLIST.ACTUALQTY = qty + " " + unit;
+        voucher.ALLINVENTORYENTRIESLIST.BILLEDQTY = qty + " " + unit;
+
+        voucher.ALLINVENTORYENTRIESLIST.BATCHALLOCATIONSLIST =  new BATCHALLOCATIONSLIST();
+        voucher.ALLINVENTORYENTRIESLIST.BATCHALLOCATIONSLIST.GODOWNNAME = "Main Location";
+        voucher.ALLINVENTORYENTRIESLIST.BATCHALLOCATIONSLIST.BATCHNAME = "Primary Batch";
+        voucher.ALLINVENTORYENTRIESLIST.BATCHALLOCATIONSLIST.AMOUNT = taxableAmount;
+        voucher.ALLINVENTORYENTRIESLIST.BATCHALLOCATIONSLIST.ACTUALQTY = qty;
+        voucher.ALLINVENTORYENTRIESLIST.BATCHALLOCATIONSLIST.BILLEDQTY= qty;
+
+        voucher.ALLINVENTORYENTRIESLIST.ACCOUNTINGALLOCATIONSLIST.LEDGERNAME = salesVoucher;
+        //voucher.ALLINVENTORYENTRIESLIST.ACCOUNTINGALLOCATIONSLIST.ISDEEMEDPOSITIVE = "No";
+        voucher.ALLINVENTORYENTRIESLIST.ACCOUNTINGALLOCATIONSLIST.AMOUNT = taxableAmount;
+
+
+        voucher.LEDGERENTRIESLIST.Add(new LEDGERENTRIESLIST()
+        {
+            LEDGERNAME = partyledgerName,
+            ISDEEMEDPOSITIVE = "Yes",
+            AMOUNT = "-" + withTaxAmount,
+        });
+
+        switch (partyLedgerState)
+        {
+            case "Delhi":
+                voucher.LEDGERENTRIESLIST.Add(new LEDGERENTRIESLIST()
+                {
+                    LEDGERNAME = cgstLegderName,
+                    ISDEEMEDPOSITIVE = "No",
+                    AMOUNT = cgstLegderNameAmt,
+                    BASICRATEOFINVOICETAXLIST = new BASICRATEOFINVOICETAXLIST()
+                    {
+                        BASICRATEOFINVOICETAX = cgstLegderNameRate,
+                        Type = "Number"
+                    }
+                });
+
+                voucher.LEDGERENTRIESLIST.Add(new LEDGERENTRIESLIST()
+                {
+                    LEDGERNAME = sgstLegderName,
+                    ISDEEMEDPOSITIVE = "No",
+                    AMOUNT = sgstLegderNameAmt,
+                    BASICRATEOFINVOICETAXLIST = new BASICRATEOFINVOICETAXLIST()
+                    {
+                        BASICRATEOFINVOICETAX = sgstLegderNameRate,
+                        Type = "Number"
+                    }
+                });
+
+                break;
+            default:
+                voucher.LEDGERENTRIESLIST.Add(new LEDGERENTRIESLIST()
+                {
+                    LEDGERNAME = igstLegderName,
+                    ISDEEMEDPOSITIVE = "No",
+                    AMOUNT = igstLegderNameAmt,
+                    BASICRATEOFINVOICETAXLIST = new BASICRATEOFINVOICETAXLIST()
+                    {
+                        BASICRATEOFINVOICETAX = igstLegderNameRate,
+                        Type = "Number"
+                    }
+                });
+                break;
+        }
+
+        return voucher;
+    }
+
 }
 
